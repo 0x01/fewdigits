@@ -33,7 +33,7 @@ import Data.Interval
 import Combinatorics
 import Control.Exception
 
-{- Thoughts:  Polynomails should always return a Complete Base.  Fractions grow to large othewise.
+{- Thoughts:  Polynomails should always return a Complete Base.  Fractions grow too large othewise.
               Separate interval aritmetic and (R+Q) optimisations into another file that implements the same interface. -}
 
 radius = 2^^(-51)
@@ -437,4 +437,3 @@ test0 = CReal id
 
 answer n x = shows (around (realScale (10^n) x))
   "x10^-"++(show n)
-
