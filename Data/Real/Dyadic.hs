@@ -18,7 +18,9 @@ import Data.Bits
 data Dyadic = Dyadic { mant :: Integer, expo :: Int }
 
 instance Show Dyadic where
-  show (Dyadic m e) = show m ++ "*2^" ++ show e
+  show (Dyadic m e) = show m ++ "*2^" ++ show e ++ " (" ++ show f ++ ")"
+    where f :: Float
+          f = (fromIntegral m) * (2 ** fromIntegral e)
 
 shifted2 :: (Integer -> Integer -> a) -> Dyadic -> Dyadic -> a
 shifted2 f (Dyadic m1 e1) (Dyadic m2 e2) =
@@ -50,7 +52,6 @@ instance Num Dyadic where
   signum (Dyadic m e) = fromInteger (signum m)
 
   fromInteger i = Dyadic i 0
-
 
 -- | This was taken from
 -- | <http://www.haskell.org/pipermail/haskell-cafe/2008-February/039640.html>
@@ -88,4 +89,3 @@ ddiv s (Dyadic m1 e1) (Dyadic m2 e2) = Dyadic (shiftL m1 (s + 1 + e1 - e2) `div`
 
 dshift :: Dyadic -> Int -> Dyadic
 dshift (Dyadic m e) k = Dyadic m (e + k)
-

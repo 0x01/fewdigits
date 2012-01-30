@@ -8,5 +8,7 @@ Homepage:       http://r6.ca/FewDigits/
 Synopsis:       Exact real arithmetic library
 Exposed-modules:
         Data.Real.CReal, Data.Real.ICReal
+	Data.Real.DReal, Data.Real.Complete
         Data.Interval, Data.Multinomial
 Build-Depends:  base -any, haskell98 -any, QuickCheck -any
+Build-Type: Simple

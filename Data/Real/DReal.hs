@@ -419,3 +419,61 @@ danswer n x = show (round $ toQ $ drealScale (10^n) x (1 / 2)) ++ "x10^-" ++ (sh
 
 instance Show DReal where
   show = danswer 50
+
+-- | Raise a rational number to an integer power (positive)
+pow :: Rational -> Integer -> Rational
+pow a k = (numerator a ^ k % denominator a ^ k)
+
+-- | half of (ceiling of 1 / 4-th root)
+g :: Rational -> Int
+g = ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational
+
+-- 'g' should be replaced by an exact function; the idea is to
+-- approximate g to one digit and then check if this is indeed
+-- the right value. If not it must be either g+1 or g-1
+
+
+{-| In order to approximate an integral up to precision eps
+  using Simpsons rule one must modify the interval at which
+  the function is evaluated. This function computes the
+  interval to the forth power: h^4 = 180 * epsilon / (M * (b-a))
+  This is done using rationals and gives an exact answer,
+  assuming b > a, m > 0, eps > 0.
+-}
+h4 :: Rational -> Rational -> Rational -> Gauge -> Rational
+h4 a b m eps = 180 * eps / (m * (b-a) `pow` 5)
+
+fromInt :: Num a => Int -> a
+fromInt = fromInteger . toEnum
+
+-- | To apply an uniform continuous function to a rational and
+-- get a result with precision eps, we need to approximate the
+-- input at precision mu eps
+applyToRational :: (Dyadic :=> DReal) -> Rational -> DReal
+applyToRational f = bind f . fromRational
+
+dsimpson :: Rational -> Rational -> Rational -> (Dyadic :=> DReal) -> DReal
+dsimpson a b m f eps = h3 * (sum $ map f' ps)
+  where
+    h3 :: Dyadic
+    h3 = fromRational (h/3) eps
+    ps = [(1,a)] ++  pts ++ [(1,b)]
+    
+    n :: Int
+    n = 1 + 2 * (g $ h4 a b m eps)
+    -- ^ number of points (a b excluded)
+    h :: Rational
+    h = (b - a) / (toInteger (n + 1) % 1)
+    -- ^ distance between two points
+    
+    pts :: [(Int,Rational)]
+    pts = take n $ zip (cycle [4,2]) ahh
+    -- ^ actual points 4*x1, 2*x2, 4*x3, ...
+    
+    ahh = scanl (+) (a+h) (repeat h)
+
+    f' (c, x) = (fromInt c) * (applyToRational f x e)
+    e = eps / (toInteger n % 1)
+    -- ^ we are applying f n times, so need precision eps/n        
+
+-- example: dsimpson 1 2 1 (dLnUniformCts $ fromInteger 1 ) (1/10000000000000)
