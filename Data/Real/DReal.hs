@@ -420,10 +420,6 @@ danswer n x = show (round $ toQ $ drealScale (10^n) x (1 / 2)) ++ "x10^-" ++ (sh
 instance Show DReal where
   show = danswer 50
 
--- | Raise a rational number to an integer power (positive)
-pow :: Rational -> Integer -> Rational
-pow a k = (numerator a ^ k % denominator a ^ k)
-
 -- | half of (ceiling of 1 / 4-th root)
 g :: Rational -> Int
 g = ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational
@@ -441,7 +437,7 @@ g = ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational
   assuming b > a, m > 0, eps > 0.
 -}
 h4 :: Rational -> Rational -> Rational -> Gauge -> Rational
-h4 a b m eps = 180 * eps / (m * (b-a) `pow` 5)
+h4 a b m eps = 180 * eps / (m * (b-a) ^^ 5)
 
 fromInt :: Num a => Int -> a
 fromInt = fromInteger . toEnum
