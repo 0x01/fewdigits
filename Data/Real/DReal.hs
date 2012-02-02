@@ -292,6 +292,9 @@ drealSinWithInv x d = (bindDR $ mkUniformCts id $ \n -> dSin n d) x
 drealSin :: DReal -> DReal
 drealSin x = drealSinWithInv x 1
 
+dSinCts :: Dyadic :=> DReal
+dSinCts = mkUniformCts id $ flip dSin 1
+
 {-
  The following definition, which is inspired by the definition in CoRN, 
  should be faster. But in practice, calculating Pi and computing the 
@@ -473,3 +476,4 @@ dsimpson a b m f eps = h3 * (sum $ map f' ps)
     -- ^ we are applying f n times, so need precision eps/n        
 
 -- example: dsimpson 1 2 1 (dLnUniformCts $ fromInteger 1 ) (1/10000000000000)
+-- exampel: dsimpson 0 (31415729/5000000) 1 (dSinCts) (1/100)
