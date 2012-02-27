@@ -69,6 +69,10 @@ drealScale :: Dyadic -> DReal -> DReal
 drealScale 0 = \_ -> 0
 drealScale c = mapDR (dmultBaseCts c)
 
+scaleCts :: Dyadic -> (Dyadic :=> DReal)
+scaleCts 0 = constCts 0
+scaleCts s = mkUniformCts (/ toQ s) $ (drealScale s) . unit
+
 dBoundAbs :: Dyadic -> Dyadic -> Dyadic
 dBoundAbs c = min c . max (-c)
 
@@ -425,7 +429,8 @@ instance Show DReal where
 
 -- | half of (ceiling of 1 / 4-th root)
 g :: Rational -> Int
-g = ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational
+g x | x == 0 = 0
+    | True = (ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational) x
 
 -- 'g' should be replaced by an exact function; the idea is to
 -- approximate g to one digit and then check if this is indeed
@@ -440,7 +445,8 @@ g = ceiling . (1/) . (2*) . toRational . sqrt . sqrt . fromRational
   assuming b > a, m > 0, eps > 0.
 -}
 h4 :: Rational -> Rational -> Rational -> Gauge -> Rational
-h4 a b m eps = 180 * eps / (m * (b-a) ^^ 5)
+h4 a b m eps | (b-a) > 0 = 180 * eps / (m * (b-a) ^^ 5)
+             | otherwise = 0
 
 fromInt :: Num a => Int -> a
 fromInt = fromInteger . toEnum
@@ -476,4 +482,33 @@ dsimpson a b m f eps = h3 * (sum $ map f' ps)
     -- ^ we are applying f n times, so need precision eps/n        
 
 -- example: dsimpson 1 2 1 (dLnUniformCts $ fromInteger 1 ) (1/10000000000000)
--- exampel: dsimpson 0 (31415729/5000000) 1 (dSinCts) (1/100)
+-- example: dsimpson 0 (31415729/5000000) 1 (dSinCts) (1/100)
+-- example: dsimpson 0 1 1 idCts (1/1000) ≈ 1/2
+
+-- | compose a function n times
+ncomp :: Int -> (a -> a) -> (a -> a)
+ncomp 1 = id
+ncomp n = \f -> f . ncomp (n - 1) f
+
+-- contraction operator on the space of uniform cts real fns
+type Operator = (Dyadic :=> DReal) :=>> (Dyadic :=> DReal)
+
+-- | computes for a given contraction and precision the required
+-- picard steps, ie, nr of compositions in (F o F o ... o F)
+picard_steps :: Operator -> Gauge -> Int
+picard_steps f eps = ceiling $ logBase c e -- TODO use precise log!
+  where c = fromRational . lipschitzConst $ f 
+        e = fromRational eps
+
+picard :: Operator -> Dyadic -> DReal
+picard op x eps = (forgetUniformCts opn) x eps
+   where n = picard_steps op eps
+         opn = ncomp n (forgetContraction op) idCts
+
+-- | The initial value problem y'=y for y(0)=1 as intergral eqn
+-- The exp function is the obvious solution to this IVP.
+expOp :: Operator
+expOp = mkContraction (1/2) fCts
+  where fCts u = mkUniformCts (/2) (\t -> 1 + dsimpson 0 (toQ t) 3 u)
+
+-- example: compute (exp .5): picard expOp (Dyadic 1 (- 1)) 1/10

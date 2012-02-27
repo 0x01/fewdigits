@@ -1,11 +1,15 @@
 {-# OPTIONS -XTypeOperators #-}
 
 module Data.Real.Complete 
-                (Gauge, Complete, unit, join, mapC, bind, mapC2,
+                (Gauge, Complete, unit, join, mapC, bind, bindCts, mapC2,
                  (:=>), mkUniformCts, modulus, forgetUniformCts,
-                 constCts, o) where
+                 (:=>>), mkContraction, lipschitzConst, forgetContraction,
+                 asUniformCts, asContraction, constCts, idCts, o) where
+
+import Control.Exception
 
 infixr 9 :=>
+infixr 9 :=>>
 
 type Gauge = Rational 
 
@@ -33,6 +37,9 @@ mapC (UniformCts mu f) x eps = f (x (mu eps))
 bind :: (a :=> Complete b) -> Complete a -> Complete b
 bind f x = join $ mapC f x
 
+bindCts :: (a :=> Complete b) -> (Complete a :=> Complete b)
+bindCts f = mkUniformCts (modulus f) (bind f)
+
 mapC2 :: (a :=> b :=> c) -> Complete a -> Complete b -> Complete c
 mapC2 f x y eps = (mapC approxf y) (eps/2)
  where
@@ -46,3 +53,18 @@ f `o` g = mkUniformCts mu h
 
 constCts :: a -> b :=> a
 constCts a = mkUniformCts (const undefined) (const a)
+
+idCts :: a :=> Complete a
+idCts = mkUniformCts id unit
+
+data a :=>> b = ContractionMap
+                { lipschitzConst :: Gauge
+                , forgetContraction :: (a -> b) }
+
+mkContraction c f = assert (c >= 0 && c < 1) $ ContractionMap c f
+
+asUniformCts :: (a :=>> b) -> (a :=> b)
+asUniformCts f = mkUniformCts (\e -> e / lipschitzConst f) (forgetContraction f)
+
+asContraction :: (a :=> b) -> Gauge -> (a :=>> b)
+asContraction f c = mkContraction c (forgetUniformCts f)
