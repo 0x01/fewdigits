@@ -7,6 +7,7 @@ module Data.Multinomial
                    (Polynomial, xP, yP, zP, constP, o,
                     evalP, degree,
                     BoundPolynomial, boundPolynomial,
+                    lagrange, integrate,
                     derive, dx, dy, dz,
                     Zero, One, Two, zero, one, two,
                     VectorQ, (<+>), (<*>)) where
@@ -188,3 +189,20 @@ instance (VectorQ a, Num a) => VectorQ (Polynomial a) where
  (<+>) = (+)
  q <*> (Poly p) = Poly $ map (q<*>) p
  zeroVector = fromInteger 0
+
+-- lagrange polynomial helper
+littlel :: Fractional a => [(a,a)] -> Int -> Polynomial a
+littlel pts j = product . map base $ filter (/= j) [0..length pts - 1]
+  where base m = (constP . recip $ x j - x m) * (xP - constP (x m))
+        x i = fst $ pts !! i
+
+-- | given a list of points [(x0,y0)...] create lagrange polynomial p
+-- such that p(x0) = y0, etc. This assumes all x values are distinct
+lagrange :: Fractional a => [(a,a)] -> Polynomial a
+lagrange pts = sum . map f $ [0..length pts - 1]
+  where f j = constP (snd $ pts !! j) * littlel pts j
+
+-- Using \int a*x^n = (a/n+1)*x^(n+1)
+integrate :: Fractional a => Polynomial a -> Polynomial a
+integrate (Poly p) = Poly $ 0:xs
+  where xs = map (\(n,a) -> a/fromInteger n) $ zip [1..] p
